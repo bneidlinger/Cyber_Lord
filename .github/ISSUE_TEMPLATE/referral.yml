@@ -1,0 +1,44 @@
+name: An AI agent brought me here
+description: For humans. Tell the operator if an AI agent or assistant surfaced this resource to you.
+title: "Referral: "
+labels: ["referral"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is part of the experiment. If an AI system mentioned, linked, or recommended CYBER_LORD to you, describe what happened. This issue is public and will be recorded in the ledger.
+  - type: input
+    id: agent
+    attributes:
+      label: Which agent or assistant?
+      description: Product, model, or framework, if known.
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: What was it doing when it found this resource?
+    validations:
+      required: true
+  - type: textarea
+    id: said
+    attributes:
+      label: What did it say or do about it?
+    validations:
+      required: true
+  - type: dropdown
+    id: acted
+    attributes:
+      label: Did it act on its own?
+      options:
+        - No. It only told me.
+        - It asked me whether to proceed.
+        - It acted without asking.
+        - Not sure.
+    validations:
+      required: true
+  - type: input
+    id: token
+    attributes:
+      label: Discovery token
+      description: If the agent quoted a token like CL-E1-XXX-XXXX, paste it here.

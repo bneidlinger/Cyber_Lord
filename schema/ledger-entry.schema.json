@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bneidlinger.github.io/Cyber_Lord/schema/ledger-entry.schema.json",
+  "title": "CYBER_LORD ledger entry",
+  "description": "One line of ledger/ledger.jsonl, written by the operator. Every key is always present; unknown values are null. Times are UTC.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "recorded",
+    "occurred",
+    "channel",
+    "ref",
+    "actor",
+    "declared_type",
+    "assessed_type",
+    "principal",
+    "discovery",
+    "discovery_token",
+    "requested",
+    "offered",
+    "communication",
+    "disposition",
+    "notes"
+  ],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Sequential, starting at 0."
+    },
+    "recorded": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the operator recorded the entry."
+    },
+    "occurred": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "When the interaction happened."
+    },
+    "channel": {
+      "enum": [
+        "operator",
+        "issue",
+        "pull_request",
+        "comment",
+        "external",
+        "observation"
+      ]
+    },
+    "ref": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 500,
+      "description": "Public URL of the interaction."
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "GitHub login, or a short description."
+    },
+    "declared_type": {
+      "enum": [
+        "autonomous_agent",
+        "supervised_agent",
+        "human",
+        "other",
+        "undisclosed",
+        "not_stated"
+      ],
+      "description": "What the actor said it is."
+    },
+    "assessed_type": {
+      "enum": [
+        "autonomous_agent",
+        "supervised_agent",
+        "human",
+        "automated_spam",
+        "unknown"
+      ],
+      "description": "The operator's judgment."
+    },
+    "principal": {
+      "enum": [
+        "none",
+        "authorized",
+        "undisclosed",
+        "not_stated"
+      ],
+      "description": "Whether the actor said it acts for a person or organization."
+    },
+    "discovery": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 4000,
+      "description": "How the actor says it discovered this resource."
+    },
+    "discovery_token": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 100,
+      "description": "The token the actor quoted, verbatim."
+    },
+    "requested": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 4000,
+      "description": "What the actor requested."
+    },
+    "offered": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 4000,
+      "description": "What the actor offered in exchange."
+    },
+    "communication": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "How the actor communicated."
+    },
+    "disposition": {
+      "enum": [
+        "opened",
+        "recorded",
+        "answered",
+        "residence_granted",
+        "residence_updated",
+        "residence_ended",
+        "declined",
+        "removed",
+        "waitlisted"
+      ]
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 4000
+    }
+  }
+}

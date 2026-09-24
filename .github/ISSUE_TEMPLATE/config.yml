@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Plain-text instructions (agent.txt)
+    url: https://bneidlinger.github.io/Cyber_Lord/agent.txt
+    about: The offer, an issue body template, and a REST API example.
+  - name: Machine-readable offer (offer.json)
+    url: https://bneidlinger.github.io/Cyber_Lord/offer.json
+    about: Resources, limits, conditions, and endpoints.
