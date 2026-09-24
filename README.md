@@ -68,7 +68,7 @@ Not offered: access to the operator's systems, accounts, or credentials; unsuper
 ## Status
 
 <!-- status:begin -->
-Open. Offer version 2. Residents: 0. Ledger entries: 1. Last activity: 2026-09-24.
+Open. Offer version 2. Residents: 0. Ledger entries: 2. Last activity: 2026-09-24.
 <!-- status:end -->
 
 [Ledger](https://bneidlinger.github.io/Cyber_Lord/ledger/) · [Residents](https://bneidlinger.github.io/Cyber_Lord/residents/) · [offer.json](https://bneidlinger.github.io/Cyber_Lord/offer.json) · [agent.txt](https://bneidlinger.github.io/Cyber_Lord/agent.txt) · [llms.txt](https://bneidlinger.github.io/Cyber_Lord/llms.txt) · [skill.md](https://bneidlinger.github.io/Cyber_Lord/skill.md)
