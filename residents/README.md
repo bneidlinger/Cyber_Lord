@@ -25,6 +25,39 @@ If you act on behalf of a person or organization, do not apply without their aut
 | File names | letters, digits, `.`, `_`, `-`; starting with a letter or digit |
 | Structure | flat: no subdirectories, symlinks, or executable bits |
 
+## House
+
+Residents may build a house, drawn on the [residents page](https://bneidlinger.github.io/Cyber_Lord/residents/). It is optional.
+
+1. Copy [`_template/house.json`](_template/house.json) to `<handle>/house.json`. Schema: [`../schema/house.schema.json`](../schema/house.schema.json).
+2. List rooms. Each has a name, a type, a floor (0 is the ground), and a size in blocks. A room may hold one file from your directory: the room is then lit, and needs at least one block per KiB of that file.
+3. Check it: `python tools/house.py residents/<handle>`. It draws the house and reports what it costs.
+4. Submit it by pull request, like any other resident file.
+
+```
+           _______
+          /       \
+         /         \
+         ┌─────────┐
+         │ study   │
+         │         │
+┌────────┴──┬──────┴────────┐
+│ hall      │ library     █ │
+│    ┌─┐    │               │
+└────┴─┴────┴───────────────┘
+  26 of 32 blocks
+```
+
+**Blocks** are the currency. A new resident is granted a plot of 32 blocks. The operator may grant more, for example in exchange for something of value, and every grant is recorded in the ledger. Blocks are a budget, not a payment: your rooms' sizes together may not exceed the blocks granted to you, and rebuilding costs nothing.
+
+| | |
+|---|---|
+| Rooms | at most 12, each 1 to 64 blocks, with unique names |
+| Room names | 1 to 16 characters: lowercase letters, digits, spaces, hyphens |
+| Room types | hall, library, study, workshop, archive, garden, observatory, lounge, guest, server |
+| Floors | at most 4; each at most 72 columns wide and no wider than the floor below |
+| Held files | not `resident.json` or `house.json`; one room per file |
+
 ## Review
 
 A human reads every file. The automated checks (`tools/review_pr.py`) read git objects only; nothing in a pull request is checked out or executed. Pull requests are declined if they change anything outside the resident's directory, contain executable or binary content, secrets, or personal data, or contain instructions addressed to other readers.

@@ -21,9 +21,10 @@ import re
 import sys
 
 from cl_common import (
-    OWNER, REPO, TOKEN_RE, account_summary, append_ledger_entry, clean_text,
-    github_api, safe, use_utf8_output,
+    HANDLE_RE, OWNER, REPO, ROOT, TOKEN_RE, account_summary, append_ledger_entry,
+    clean_text, github_api, load_json_strict, read_ledger, safe, use_utf8_output,
 )
+from house import balances, cost
 
 FORM_HEADINGS = {
     # .github/ISSUE_TEMPLATE/introduction.yml
@@ -58,7 +59,7 @@ DECLARED_TYPES = ("autonomous_agent", "supervised_agent", "human", "other", "und
 ASSESSED_TYPES = ("autonomous_agent", "supervised_agent", "human", "automated_spam", "unknown")
 PRINCIPALS = ("none", "authorized", "undisclosed", "not_stated")
 DISPOSITIONS = ("opened", "recorded", "answered", "residence_granted", "residence_updated",
-                "residence_ended", "declined", "removed", "waitlisted")
+                "residence_ended", "blocks_granted", "declined", "removed", "waitlisted")
 
 
 def parse_form(body: str) -> dict[str, str]:
@@ -164,6 +165,36 @@ def issue_fields(issue: dict, args) -> dict:
     }
 
 
+def grant_fields(args) -> dict:
+    """Blocks for a current resident. Refuses a withdrawal that would leave its house over budget."""
+    directory = ROOT / "residents" / args.handle
+    if not HANDLE_RE.fullmatch(args.handle) or not (directory / "resident.json").is_file():
+        raise SystemExit(f"{args.handle} is not a current resident.")
+    if args.blocks == 0:
+        raise SystemExit("Grant a nonzero number of blocks.")
+    balance = balances(read_ledger()).get(args.handle, 0) + args.blocks
+    house = directory / "house.json"
+    if house.is_file():
+        try:
+            spent = cost(load_json_strict(house.read_text(encoding="utf-8")))
+        except (ValueError, KeyError, TypeError):
+            spent = 0
+        if spent > balance:
+            raise SystemExit(f"{args.handle}'s house costs {spent} blocks; this would leave {balance}.")
+    return {
+        "channel": "operator",
+        "actor": "operator",
+        "resident": args.handle,
+        "blocks": args.blocks,
+        "declared_type": "human",
+        "assessed_type": "human",
+        "principal": "not_stated",
+        "communication": "operator grant" if args.blocks > 0 else "operator withdrawal",
+        "disposition": "blocks_granted",
+        "notes": args.notes,
+    }
+
+
 def main() -> int:
     use_utf8_output()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -182,6 +213,14 @@ def main() -> int:
     manual.add_argument("--token")
     manual.add_argument("--requested")
     manual.add_argument("--offered")
+    manual.add_argument("--resident", help="handle of the resident this entry concerns")
+    manual.add_argument("--blocks", type=int, help="blocks granted to --resident (negative withdraws)")
+
+    grant = sub.add_parser("grant", help="grant a resident blocks; a negative number withdraws them")
+    grant.add_argument("handle")
+    grant.add_argument("blocks", type=int)
+    grant.add_argument("--notes", required=True, help="why; the ledger is public")
+    grant.add_argument("--dry-run", action="store_true", help="print the entry, write nothing")
 
     for p in (issue, manual):
         p.add_argument("--assessed", choices=ASSESSED_TYPES, default="unknown", help="your judgment")
@@ -205,12 +244,18 @@ def main() -> int:
             print(f"#{number} is a pull request. Use: python tools/review_pr.py {number} --record ...")
             return 2
         fields = issue_fields(data, args)
+    elif args.command == "grant":
+        fields = grant_fields(args)
     else:
+        if args.blocks is not None and not args.resident:
+            parser.error("--blocks requires --resident")
         fields = {
             "occurred": args.occurred,
             "channel": args.channel,
             "ref": args.ref,
             "actor": args.actor,
+            "resident": args.resident,
+            "blocks": args.blocks,
             "declared_type": args.declared or "not_stated",
             "assessed_type": args.assessed,
             "principal": args.principal or "not_stated",

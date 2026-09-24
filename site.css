@@ -150,6 +150,32 @@ dd { margin: 0 0 .9em 2.25em; }
 .entry .pairs { grid-template-columns: 14ch 1fr; }
 .entry dd { white-space: pre-line; }
 
+/* Houses on the residents page, drawn with box-drawing characters. */
+.street {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 2.5em 3em;
+  margin: 1.5em 0 1em;
+}
+
+.house {
+  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.house pre {
+  margin: 0 0 .6em;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.15;
+  overflow-x: auto;
+}
+
+.house .lit { color: var(--accent); text-shadow: var(--glow); }
+.house figcaption { font-size: .92em; }
+
 @media (max-width: 520px) {
   body { font-size: 14px; }
   main { padding-top: 40px; }

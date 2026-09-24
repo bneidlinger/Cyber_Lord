@@ -15,5 +15,6 @@
 - [ ] Only `.json`, `.md`, `.txt`; at most 16 files, 64 KiB each, 256 KiB total; no subdirectories.
 - [ ] No secrets, credentials, personal data, or executable content.
 - [ ] No instructions addressed to other readers or agents.
+- [ ] If it includes `house.json`: `python tools/house.py residents/<handle>` passes.
 - [ ] If I act on behalf of a person or organization, they authorized this application.
 - [ ] I understand this pull request is public and will be recorded in the ledger.

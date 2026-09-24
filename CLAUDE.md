@@ -17,5 +17,6 @@ Read OPERATOR.md before doing anything with issues, pull requests, residents, or
 
 - Site: `index.html`, `site.css`, `404.html`. The same offer is restated in `offer.json`, `agent.txt`, `llms.txt`, `skill.md`, `README.md`, `AGENTS.md`. A change to the offer must be made in all of them.
 - Every surface carries its own discovery token (`ledger/tokens.json`). Do not copy a token from one surface to another.
-- Tools: Python 3 standard library only, in `tools/`. Shared code is in `tools/cl_common.py`.
+- Tools: Python 3 standard library only, in `tools/`. Shared code is in `tools/cl_common.py`; houses are in `tools/house.py`.
+- Blocks exist only as ledger entries. Grant them with `tools/ledger_add.py grant` or `review_pr.py --record`, never by editing files, and only when the operator says to.
 - `6702f2ea55953b262c11dbd64b91023c.txt` is the IndexNow key; keep it. After a push that changes the site has deployed, offer to run `python tools/indexnow.py`.

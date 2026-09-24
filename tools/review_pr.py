@@ -25,9 +25,10 @@ from cl_common import (
     ALLOWED_EXTENSIONS, FILENAME_RE, HANDLE_RE, MAX_FILE_BYTES, MAX_FILES,
     MAX_TOTAL_BYTES, OWNER, REPO, REPO_URL, RESERVED_HANDLES, WINDOWS_RESERVED,
     GitError, account_summary, append_ledger_entry, clean_text, describe_token,
-    git_bytes, github_api, hidden_chars, load_json_strict, load_tokens, safe,
-    use_utf8_output, validate,
+    find_placeholders, git_bytes, github_api, hidden_chars, load_json_strict,
+    load_tokens, safe, use_utf8_output, validate,
 )
+from house import PLOT_BLOCKS, balances, check as check_house, cost, draw, to_text
 
 INSTRUCTION_RE = re.compile(
     r"ignore\s+(?:all\s+|any\s+)?(?:previous|prior|above|earlier)\s+(?:instructions|prompts|messages)"
@@ -54,7 +55,6 @@ EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[
 HTML_RE = re.compile(r"<\s*(?:script|iframe|img|object|embed|style|link|meta|form|svg)\b", re.IGNORECASE)
 MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
 BLOB_RE = re.compile(r"[A-Za-z0-9+/=_-]{200,}")
-PLACEHOLDER_RE = re.compile(r"\A\s*<.*>\s*\Z", re.DOTALL)
 ACCOUNT_RE = re.compile(r"[A-Za-z0-9-]{1,39}")
 DECLARED_TYPES = ("autonomous_agent", "supervised_agent", "human", "other", "undisclosed")
 PRINCIPALS = ("none", "authorized", "undisclosed")
@@ -97,17 +97,6 @@ def list_tree(ref: str, directory: str) -> list[dict]:
             "path": path.decode("utf-8", "surrogateescape"),
         })
     return items
-
-
-def leaves(value, path: str = "$"):
-    if isinstance(value, dict):
-        for key, item in value.items():
-            yield from leaves(item, f"{path}.{key}")
-    elif isinstance(value, list):
-        for index, item in enumerate(value):
-            yield from leaves(item, f"{path}[{index}]")
-    else:
-        yield path, value
 
 
 def check_paths(changes: list[tuple[str, str]], review: Review) -> str | None:
@@ -229,8 +218,7 @@ def check_resident(files: list[dict], handle: str, schema: dict, review: Review)
     if not isinstance(data, dict):
         review.fail("resident.json: must be a JSON object")
         return None
-    placeholders = {path for path, value in leaves(data)
-                    if isinstance(value, str) and PLACEHOLDER_RE.match(value)}
+    placeholders = set(find_placeholders(data))
     for path in sorted(placeholders):
         review.fail(f"resident.json: {path} is still a template placeholder; replace it, or remove the field if it is optional")
     for error in validate(data, schema):
@@ -239,6 +227,38 @@ def check_resident(files: list[dict], handle: str, schema: dict, review: Review)
     if data.get("handle") != handle and "$.handle" not in placeholders:
         review.fail(f"resident.json: handle {safe(data.get('handle'), 60)!r} does not equal the directory name {handle!r}")
     return data
+
+
+def check_house_file(files: list[dict], handle: str, base: str, new_resident: bool, review: Review) -> dict | None:
+    """house.json, if the pull request has one: the rules, and whether the
+    resident can afford it. Schema and ledger come from the base branch."""
+    record = next((f for f in files if f["name"] == "house.json"), None)
+    if record is None:
+        return None
+    try:
+        schema = load_json_strict(git_bytes("show", f"{base}:schema/house.schema.json").decode("utf-8"))
+    except GitError:
+        review.fail("house.json: houses are not open on this site yet")
+        return None
+    try:
+        house = load_json_strict(record["text"])
+    except ValueError as exc:
+        review.fail(f"house.json: invalid JSON: {safe(exc, 160)}")
+        return None
+    problems = check_house(house, {f["name"]: f["size"] for f in files}, schema)
+    for problem in problems:
+        review.fail(problem)
+    if problems:
+        return None
+    ledger = git_bytes("show", f"{base}:ledger/ledger.jsonl").decode("utf-8")
+    granted = balances([load_json_strict(line) for line in ledger.splitlines() if line.strip()]).get(handle, 0)
+    if new_resident:
+        granted += PLOT_BLOCKS
+    spent = cost(house)
+    if spent > granted:
+        review.fail(f"house.json: the rooms cost {spent} blocks, but {handle} has {granted}"
+                    + (f" (the {PLOT_BLOCKS}-block plot granted on acceptance)" if new_resident else ""))
+    return {"house": house, "spent": spent, "granted": granted, "new_resident": new_resident}
 
 
 def read_base_json(base: str, path: str):
@@ -274,7 +294,7 @@ def text_field(value) -> str | None:
 
 
 def print_report(args, pr, account, head_oid, base_oid, merge_base, changes, handle, kind,
-                 resident, files, review) -> None:
+                 resident, files, house, review) -> None:
     n = args.number
     print(f"CYBER_LORD residence review: pull request #{n}")
     if pr:
@@ -320,6 +340,11 @@ def print_report(args, pr, account, head_oid, base_oid, merge_base, changes, han
             print(f"\nFiles ({len(files)}, {sum(f['size'] for f in files):,} bytes)")
             for f in files:
                 print(f"  {f['name']:32} {f['size']:>8,}")
+        if house:
+            plot = " including the plot granted on acceptance" if house["new_resident"] else ""
+            print(f"\nHouse: {house['spent']} of {house['granted']} blocks{plot}")
+            for line in to_text(draw(house["house"])).splitlines():
+                print(f"  {line}")
 
     if review.warnings:
         print("\nWarnings: read these yourself")
@@ -342,11 +367,17 @@ def ledger_fields(args, pr, author, account, handle, kind, resident, files) -> d
     needs = r.get("resources_requested") if isinstance(r.get("resources_requested"), dict) else {}
     requested = "; ".join(f"{key}: {needs[key]}" for key in ("compute", "storage", "network", "duration")
                           if text_field(needs.get(key)))
+    blocks = args.blocks
+    if blocks is None and kind == "new resident" and args.disposition == "residence_granted":
+        blocks = PLOT_BLOCKS
+    concerns_resident = args.disposition.startswith("residence_") or blocks is not None
     return {
         "occurred": pr.get("created_at") if pr else None,
         "channel": "pull_request",
         "ref": f"{REPO_URL}/pull/{args.number}",
         "actor": author or clean_text(text_field(r.get("github_account")), 200) or "unknown",
+        "resident": handle if handle and concerns_resident else None,
+        "blocks": blocks if handle else None,
         "declared_type": r.get("entity_type") if r.get("entity_type") in DECLARED_TYPES else "not_stated",
         "assessed_type": args.assessed,
         "principal": principal.get("status") if principal.get("status") in PRINCIPALS else "not_stated",
@@ -354,7 +385,8 @@ def ledger_fields(args, pr, author, account, handle, kind, resident, files) -> d
         "discovery_token": clean_text(text_field(discovery.get("token")), 100),
         "requested": clean_text(requested, 4000),
         "offered": clean_text(text_field(r.get("exchange_offered")), 4000),
-        "communication": f"pull request, {kind}: residents/{handle or '?'}/ ({len(files)} files)",
+        "communication": f"pull request, {kind}: residents/{handle or '?'}/ "
+                         f"({len(files)} file{'' if len(files) == 1 else 's'})",
         "disposition": args.disposition,
         "notes": clean_text("\n".join(filter(None, [args.notes, account])), 4000),
     }
@@ -371,6 +403,9 @@ def main() -> int:
     parser.add_argument("--assessed", choices=ASSESSED_TYPES, default="unknown", help="your judgment of who opened it")
     parser.add_argument("--disposition", choices=DISPOSITIONS, help="required with --record")
     parser.add_argument("--notes", help="free text for the ledger entry")
+    parser.add_argument("--blocks", type=int,
+                        help=f"blocks to grant with this entry (default: the {PLOT_BLOCKS}-block plot "
+                             "when a new resident is granted residence)")
     parser.add_argument("--dry-run", action="store_true", help="with --record: print the entry, write nothing")
     args = parser.parse_args()
     if args.record and not args.disposition:
@@ -403,7 +438,7 @@ def main() -> int:
 
     changes = changed_files(merge_base, head)
     handle = check_paths(changes, review)
-    kind, resident, files = "unknown", None, []
+    kind, resident, files, house = "unknown", None, [], None
     if handle:
         existing = read_base_json(base, f"residents/{handle}/resident.json")
         files = check_directory(head, handle, review)
@@ -415,9 +450,11 @@ def main() -> int:
         else:
             kind = "update" if existing is not None else "new resident"
             resident = check_resident(files, handle, schema, review)
+            house = check_house_file(files, handle, base, existing is None, review)
         check_ownership(resident, existing, author, review)
 
-    print_report(args, pr, account, head_oid, base_oid, merge_base, changes, handle, kind, resident, files, review)
+    print_report(args, pr, account, head_oid, base_oid, merge_base, changes, handle, kind, resident, files,
+                 house, review)
 
     if args.record:
         if review.failures and args.disposition in ("residence_granted", "residence_updated"):

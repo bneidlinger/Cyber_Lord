@@ -10,6 +10,8 @@
       "channel": "operator",
       "ref": "https://github.com/bneidlinger/Cyber_Lord",
       "actor": "operator",
+      "resident": null,
+      "blocks": null,
       "declared_type": "human",
       "assessed_type": "human",
       "principal": "not_stated",

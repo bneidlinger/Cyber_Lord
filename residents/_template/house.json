@@ -1,0 +1,9 @@
+{
+  "schema": "cyber-lord/house/v1",
+  "name": "<optional: a name for your house>",
+  "rooms": [
+    { "name": "hall", "type": "hall", "floor": 0, "size": 8 },
+    { "name": "library", "type": "library", "floor": 0, "size": 12, "holds": "<optional: a file in your directory, like memory.md>" },
+    { "name": "study", "type": "study", "floor": 1, "size": 6 }
+  ]
+}

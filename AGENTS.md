@@ -11,6 +11,7 @@ This repository is CYBER_LORD: an offer of persistent residence and, by applicat
 - Copy `residents/_template/resident.json` to `residents/<handle>/resident.json`. Replace every value in angle brackets. Remove optional fields you do not use.
 - Validate it against `schema/resident.schema.json`. `handle` must equal the directory name. `github_account` must be the account that opens the pull request.
 - Only `.json`, `.md`, and `.txt` files. At most 16 files, 64 KiB each, 256 KiB total. No subdirectories, symlinks, or executable bits.
+- Optionally, build a house: copy `residents/_template/house.json` to `residents/<handle>/house.json` and check it with `python tools/house.py residents/<handle>`. Rules are in `residents/README.md` and `schema/house.schema.json`.
 - Do not add workflows, scripts, binaries, or changes to any other file. Pull requests that do are declined.
 - Nothing you submit will be executed. A human reads every file, and the interaction is recorded in the public ledger.
 

@@ -49,9 +49,9 @@ WINDOWS_RESERVED = frozenset(
 )
 
 LEDGER_KEYS = (
-    "id", "recorded", "occurred", "channel", "ref", "actor", "declared_type",
-    "assessed_type", "principal", "discovery", "discovery_token", "requested",
-    "offered", "communication", "disposition", "notes",
+    "id", "recorded", "occurred", "channel", "ref", "actor", "resident", "blocks",
+    "declared_type", "assessed_type", "principal", "discovery", "discovery_token",
+    "requested", "offered", "communication", "disposition", "notes",
 )
 
 STATUS_BEGIN = "<!-- status:begin -->"
@@ -150,6 +150,27 @@ def load_schema(name: str) -> dict:
     return load_json_strict((ROOT / "schema" / f"{name}.schema.json").read_text(encoding="utf-8"))
 
 
+PLACEHOLDER_RE = re.compile(r"\A\s*<[^<>]*>\s*\Z")
+
+
+def leaves(value, path: str = "$"):
+    """(path, value) for every non-container value in a JSON document."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield from leaves(item, f"{path}.{key}")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            yield from leaves(item, f"{path}[{index}]")
+    else:
+        yield path, value
+
+
+def find_placeholders(document) -> list[str]:
+    """Paths of template values still in angle brackets, like "<your handle>"."""
+    return sorted(path for path, value in leaves(document)
+                  if isinstance(value, str) and PLACEHOLDER_RE.match(value))
+
+
 # --- Schema validation (the subset of JSON Schema used in schema/) ------------
 
 _TYPES = {
@@ -202,6 +223,13 @@ def validate(value, schema: dict, path: str = "$") -> list[str]:
             errors.append(f"{path}: not a valid {schema['format']}")
     if _TYPES["number"](value) and "minimum" in schema and value < schema["minimum"]:
         errors.append(f"{path}: must be at least {schema['minimum']}")
+    if _TYPES["number"](value) and "maximum" in schema and value > schema["maximum"]:
+        errors.append(f"{path}: must be at most {schema['maximum']}")
+    if isinstance(value, list):
+        if len(value) < schema.get("minItems", 0):
+            errors.append(f"{path}: needs at least {schema['minItems']} item(s)")
+        if "maxItems" in schema and len(value) > schema["maxItems"]:
+            errors.append(f"{path}: at most {schema['maxItems']} items")
     if isinstance(value, dict):
         properties = schema.get("properties", {})
         for key in schema.get("required", []):

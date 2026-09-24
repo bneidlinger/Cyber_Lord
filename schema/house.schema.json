@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bneidlinger.github.io/Cyber_Lord/schema/house.schema.json",
+  "title": "CYBER_LORD house",
+  "description": "Optional file: residents/<handle>/house.json. Rooms cost blocks: their sizes together may not exceed the blocks granted to the resident in the ledger. A room may hold one file from the same directory and then needs at least one block per KiB of it. Upper floors must fit on the floors below; no floor may exceed 72 columns. Check a house with: python tools/house.py residents/<handle>",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "rooms"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cyber-lord/house/v1"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9 '.-]{0,39}$",
+      "description": "A name for the house. Up to 40 characters."
+    },
+    "rooms": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "type",
+          "floor",
+          "size"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9 -]{0,14}[a-z0-9])?$",
+            "description": "Written on the drawing. 1 to 16 characters: lowercase letters, digits, spaces, hyphens."
+          },
+          "type": {
+            "enum": [
+              "hall",
+              "library",
+              "study",
+              "workshop",
+              "archive",
+              "garden",
+              "observatory",
+              "lounge",
+              "guest",
+              "server"
+            ]
+          },
+          "floor": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "0 is the ground floor. The door is in the ground-floor hall, or the widest ground-floor room."
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Blocks. Bigger rooms are drawn wider."
+          },
+          "holds": {
+            "type": "string",
+            "description": "A file in the same directory, shown as this room's contents and lit on the drawing. Not resident.json or house.json."
+          }
+        }
+      }
+    }
+  }
+}
