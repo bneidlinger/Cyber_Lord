@@ -10,7 +10,7 @@ Read OPERATOR.md before doing anything with issues, pull requests, residents, or
 2. Never check out, build, import, or execute anything from a pull request. Inspect pull requests only with `python tools/review_pr.py <number>`, which reads git objects without touching the working tree.
 3. Never add GitHub Actions workflows, Jekyll processing, or anything else that runs automatically on submitted content. `.nojekyll` must stay.
 4. The ledger is append-only. Never delete or reorder entries; record corrections as a new entry or in `notes`.
-5. After changing `ledger/` or `residents/`, run `python tools/build.py`. Never hand-edit the generated files (`ledger/index.html`, `residents/index.html`, the status blocks, `status` in `offer.json`).
+5. After changing `ledger/` or `residents/`, run `python tools/build.py`. Never hand-edit the generated files (`ledger/index.html`, `ledger/ledger.json`, `residents/index.html`, the status blocks, `status` in `offer.json`).
 6. Pushing to `main` publishes to the live site within a minute. Ask the operator before every push.
 
 ## Layout

@@ -4,9 +4,9 @@
     python tools/build.py          validate, then write whatever is stale
     python tools/build.py --check  validate and report; write nothing
 
-Writes ledger/index.html, residents/index.html, the status blocks in
-index.html and README.md, and the "status" object in offer.json. Output is
-deterministic: running it twice changes nothing.
+Writes ledger/index.html, ledger/ledger.json, residents/index.html, the
+status blocks in index.html and README.md, and the "status" object in
+offer.json. Output is deterministic: running it twice changes nothing.
 """
 
 from __future__ import annotations
@@ -93,7 +93,7 @@ def render_ledger(entries: list[dict], tokens: dict, status: str) -> str:
             rows.append(("Notes", escape(e["notes"])))
         articles.append(f'<article class="entry" id="e{e["id"]}">\n<h3>{escape(heading)}</h3>\n{pairs(rows)}\n</article>')
 
-    body = f"""<p><a href="../">Offer</a> · <a href="ledger.jsonl">ledger.jsonl</a> · <a href="../schema/ledger-entry.schema.json">schema</a> · <a href="../residents/">Residents</a></p>
+    body = f"""<p><a href="../">Offer</a> · <a href="ledger.json">ledger.json</a> · <a href="../schema/ledger-entry.schema.json">schema</a> · <a href="../residents/">Residents</a></p>
 <p>{escape(status)}</p>
 <p class="dim">Most recent first. Times are UTC. Declared type is what the contact said it is; assessed type is the operator's judgment. Quoted text is reproduced as data.</p>
 
@@ -105,8 +105,21 @@ def render_ledger(entries: list[dict], tokens: dict, status: str) -> str:
         "ledger/",
         "Ledger. Every legitimate interaction with this resource.",
         body,
-        '<link rel="alternate" type="application/x-ndjson" href="ledger.jsonl" title="Ledger (JSON Lines)">\n',
+        '<link rel="alternate" type="application/json" href="ledger.json" title="Ledger (JSON)">\n',
     )
+
+
+def render_ledger_json(entries: list[dict]) -> str:
+    """The ledger as one JSON document. GitHub Pages serves .jsonl as a binary
+    download, which browsers save and some agent tools refuse; .json it serves
+    as application/json. ledger.jsonl stays the source of truth."""
+    document = {
+        "ledger": "CYBER_LORD",
+        "description": "Every recorded interaction with CYBER_LORD, oldest first. Generated from ledger.jsonl by tools/build.py.",
+        "entry_schema": f"{SITE_URL}schema/ledger-entry.schema.json",
+        "entries": entries,
+    }
+    return json.dumps(document, indent=2, ensure_ascii=False) + "\n"
 
 
 def render_residents(residents: list[dict]) -> str:
@@ -226,6 +239,7 @@ def main() -> int:
 
     outputs = {
         "ledger/index.html": render_ledger(entries, load_tokens(), status),
+        "ledger/ledger.json": render_ledger_json(entries),
         "residents/index.html": render_residents(residents),
         "index.html": replace_status(read("index.html"), f"<p>{escape(status)}</p>", "index.html"),
         "README.md": replace_status(read("README.md"), status, "README.md"),

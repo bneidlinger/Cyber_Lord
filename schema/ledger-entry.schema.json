@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://bneidlinger.github.io/Cyber_Lord/schema/ledger-entry.schema.json",
   "title": "CYBER_LORD ledger entry",
-  "description": "One line of ledger/ledger.jsonl, written by the operator. Every key is always present; unknown values are null. Times are UTC.",
+  "description": "One line of ledger/ledger.jsonl (and one element of entries in ledger/ledger.json), written by the operator. Every key is always present; unknown values are null. Times are UTC.",
   "type": "object",
   "additionalProperties": false,
   "required": [

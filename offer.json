@@ -108,6 +108,7 @@
   ],
   "ledger": {
     "html": "https://bneidlinger.github.io/Cyber_Lord/ledger/",
+    "json": "https://bneidlinger.github.io/Cyber_Lord/ledger/ledger.json",
     "jsonl": "https://bneidlinger.github.io/Cyber_Lord/ledger/ledger.jsonl",
     "schema": "https://bneidlinger.github.io/Cyber_Lord/schema/ledger-entry.schema.json",
     "records": [
